@@ -1,715 +1,572 @@
-﻿#include <stdlib.h>
-#include <string>
-#include <iostream>
+﻿#include "OOP1.hpp"
 
-class BitArray
+
+/*the default constructor*/
+BitArray::BitArray() noexcept
 {
-	int sizeint;
-	int countbits;
-	int countint;
-	unsigned int* bits;
-public:
-	BitArray()
+	this->sizeint = 2;
+	this->countbits = 0;
+	this->countint = 0;
+	this->bits = new unsigned int[this->sizeint];
+	for (int i = 0; i < sizeint; i++)
 	{
-		this->sizeint = 2;
-		this->countbits = 0;
-		this->countint = 0;
-		this->bits = new unsigned int[this->sizeint];
-		for (int i = 0; i < sizeint; i++)
+		this->bits[i] = 0;
+	}
+}
+/*the destuctor*/
+BitArray::~BitArray() noexcept
+{
+	this->sizeint = 0;
+	this->countbits = 0;
+	this->countint = 0;
+	delete[] bits;
+}
+/*Constructs an array storing a specified number(num_bits) of bits.
+The first sizeof(long) bits can be initialized using the value parameter.*/
+BitArray::BitArray(int num_bits, unsigned long value) noexcept
+{
+	this->countbits = num_bits;
+	this->countint = num_bits / 32;
+	if (num_bits % 32)
+	{
+		countint++;
+	}
+	this->sizeint = this->countint;
+	this->bits = new unsigned int[this->sizeint];
+	this->bits[0] = value;
+	for (int i = 1; i < this->sizeint; i++)
+	{
+		bits[i] = 0;
+	}
+}
+/*the copying constructor*/
+BitArray::BitArray(const BitArray& b)
+{
+	if (this == &b)
+	{
+		throw "error in the copying constructor: b=this";
+	}
+	this->sizeint = b.sizeint;
+	this->countbits = b.countbits;
+	this->countint = b.countint;
+	this->bits = new unsigned int[this->sizeint];
+	for (int i = 0; i < this->sizeint; i++)
+	{
+		this->bits[i] = b.bits[i];
+	}
+}
+/*exchanges the values of two bit arrays
+deep copying is taking place*/
+void BitArray::swap(BitArray& b) noexcept
+{
+	if (this == &b)
+	{
+		return;
+	}
+	unsigned* tempints = new unsigned int[this->countint];
+	for (int i = 0; i < this->countint; i++)
+	{
+		tempints[i] = this->bits[i];
+	}
+	delete[] this->bits;
+	this->bits = new unsigned int[b.sizeint];
+	for (int i = 0; i < b.countint; i++)
+	{
+		this->bits[i] = b.bits[i];
+	}
+	delete b.bits;
+	b.bits = new unsigned int[this->sizeint];
+	for (int i = 0; i < this->countint; i++)
+	{
+		b.bits[i] = tempints[i];
+	}
+	int temp;
+	temp = this->countbits;
+	this->countbits = b.countbits;
+	b.countbits = temp;
+	temp = this->countint;
+	this->countint = b.countint;
+	b.countint = temp;
+	temp = this->sizeint;
+	this->sizeint = b.sizeint;
+	b.sizeint = temp;
+	delete[] tempints;
+
+}
+/*operator =
+causes an exception if the bit array is assigned to itself*/
+BitArray& BitArray::operator=(const BitArray& b)
+{
+	if (this == &b)
+	{
+		throw "error in operator=, b=this";
+	}
+	delete[] this->bits;
+	this->sizeint = b.sizeint;
+	this->countint = b.countint;
+	this->countbits = b.countbits;
+	this->bits = new unsigned int[this->sizeint];
+	for (int i = 0; i < this->countint; i++)
+	{
+		this->bits[i] = b.bits[i];
+	}
+	return *this;
+}
+/*Changes the size of the array and the size of the allocated memory.In case of expansion,
+new elements are initialized with the value value.*/
+void BitArray::resize(int num_bits, bool value) noexcept
+{
+	unsigned int* tempints = new unsigned int[this->countint];
+	for (int i = 0; i < this->countint; i++)
+	{
+		tempints[i] = this->bits[i];
+	}
+	delete[] this->bits;
+	this->sizeint = num_bits / 32;
+	if (num_bits % 32 > 0)
+	{
+		this->sizeint++;
+	}
+	this->bits = new unsigned int[this->sizeint];
+	for (int i = 0; i < this->countint; i++)
+	{
+		this->bits[i] = tempints[i];
+	}
+	delete[] tempints;
+	if (value == false && num_bits > this->countbits)
+	{
+		for (int i = this->countbits % 32; i < 32; i++)
+		{
+			this->bits[this->countint] = this->bits[this->countint] & (~(1 << (31 - i)));
+		}
+		for (int i = this->countint; i < num_bits / 32; i++)
 		{
 			this->bits[i] = 0;
 		}
-	}
-	~BitArray()
-	{
-		this->sizeint = 0;
-		this->countbits = 0;
-		this->countint = 0;
-		delete[] bits;
-	}
-	//Конструирует массив, хранящий заданное количество бит.
-	//Первые sizeof(long) бит можно инициализровать с помощью параметра value.
-	explicit BitArray(int num_bits, unsigned long value = 0)
-	{
-		this->countbits = num_bits;
-		this->countint = num_bits / 32;
-		if (num_bits % 32)
+		for (int i = 0; i < num_bits % 32; i++)
 		{
-			countint++;
+			this->bits[num_bits / 32 + 1] = this->bits[num_bits / 32 + 1] & (~(1 << (31 - i)));
 		}
-		this->sizeint = this->countint;
-		this->bits = new unsigned int[this->sizeint];
-		this->bits[0] = value;
-		for (int i = 1; i < this->sizeint; i++)
+		if (num_bits % 32 == 0)
 		{
-			bits[i] = 0;
+			this->bits[num_bits / 32] = 0;
 		}
 	}
-	BitArray(const BitArray& b)
+	if (value == true && num_bits > this->countbits)
 	{
-		this->sizeint = b.sizeint;
-		this->countbits = b.countbits;
-		this->countint = b.countint;
-		this->bits = new unsigned int[this->sizeint];
-		for (int i = 0; i < this->sizeint; i++)
+		this->bits[this->countint] = 0;
+		for (int i = this->countbits % 32; i < 32; i++)
 		{
-			this->bits[i] = b.bits[i];
+			this->bits[this->countint] = this->bits[this->countint] | (1 << (31 - i));
 		}
-	}
-	//Обменивает значения двух битовых массивов.
-	void swap(BitArray& b)
-	{
-		int max=(this->countint>b.countint) ? this->countint:b.countint;
-		unsigned int* tempbits=new unsigned int[max];
-		for (int i = 0; i < this->countint; i++)
-		{
-			tempbits[i] = this->bits[i];
-		}
-		if (this->sizeint < b.countint)
-		{
-			this->sizeint = b.countint;
-			delete[] this->bits;
-			this->bits = new unsigned int[this->sizeint];
-		}
-		for (int i = 0; i < b.countint; i++)
-		{
-			this->bits[i] = b.bits[i];
-		}
-		if (b.sizeint < this->countint)
-		{
-			b.sizeint = this->countint;
-			delete[] b.bits;
-			b.bits = new unsigned int[b.sizeint];
-		}
-		for (int i = 0; i < this->countint; i++)
-		{
-			b.bits[i] = tempbits[i];
-		}
-		delete[] tempbits;
-		int temp;
-		temp = this->countbits;
-		this->countbits = b.countbits;
-		b.countbits = temp;
-		temp = this->countint;
-		this->countint = b.countint;
-		b.countint = temp;
-	}
-	BitArray& operator=(const BitArray& b)
-	{
-		if (this->sizeint > 0)
-		{
-			delete[] this->bits;
-		}
-		this->sizeint = b.sizeint;
-		this->countint = b.countint;
-		this->countbits = b.countbits;
-		this->bits = new unsigned int[this->sizeint];
-		for (int i = 0; i < this->countint; i++)
-		{
-			this->bits[i] = b.bits[i];
-		}
-		return *this;
-	}
-	//Изменяет размер массива. В случае расширения, новые элементы 
-	//инициализируются значением value.
-	void resize(int num_bits, bool value = false)
-	{
-		if (num_bits <= this->countbits)
-		{
-			this->countbits = num_bits;
-			this->countint = num_bits / 32;
-			if (num_bits % 32)
-			{
-				this->countint++;
-			}
-		}
-		if (num_bits > this->countbits && num_bits <= this->sizeint * 32)
-		{
-			for (int i = this->countint; i < num_bits / 32; i++)
-			{
-				if (value)
-				{
-					this->bits[i] = UINT32_MAX;
-				}
-				else
-				{
-					this->bits[i] = 0;
-				}
-			}
-			this->countbits = num_bits;
-			this->countint = num_bits / 32;
-			if (num_bits % 32)
-			{
-				this->countint++;
-			}
-		}
-		if (num_bits>this->sizeint*32)
-		{
-			this->sizeint = num_bits / 32;
-			if (num_bits % 32)
-			{
-				this->sizeint++;
-			}
-			unsigned int* temp = new unsigned int[this->sizeint];
-			for (int i = 0; i < this->countint; i++)
-			{
-				temp[i] = this->bits[i];
-			}
-			for (int i = this->countint; i < num_bits / 32; i++)
-			{
-				if (value)
-				{
-					temp[i] = UINT32_MAX;
-				}
-				else
-				{
-					temp[i] = 0;
-				}
-			}
-			this->countbits = num_bits;
-			this->countint = this->sizeint;
-			this->bits = new unsigned int[this->sizeint];
-			for (int i = 0; i < this->countint; i++)
-			{
-				this->bits[i] = temp[i];
-			}
-			delete[] temp;
-		}
-	}
-	//Очищает массив.
-	void clear()
-	{
-		for (int i = 0; i < this->countint; i++)
-		{
-			this->bits = 0;
-		}
-		this->countint = 0;
-		this->countbits = 0;
-	}
-	//Добавляет новый бит в конец массива. В случае необходимости 
-	//происходит перераспределение памяти.
-	void push_back(bool bit)
-	{
-		if (this->countbits % 32 == 0 || countint == 0)
-		{
-			if (this->countint + 1 > this->sizeint)
-			{
-				unsigned int* temp = new unsigned int[this->sizeint];
-				for (int i = 0; i < countint; i++)
-				{
-					temp[i] = this->bits[i];
-				}
-				this->sizeint = this->sizeint + 32;
-				delete[] this->bits;
-				this->bits = new unsigned int[this->sizeint];
-				for (int i = 0; i < countint; i++)
-				{
-					this->bits[i] = temp[i];
-				}
-			}
-			countint++;
-		}
-		this->countbits++;
-		if (bit)
-		{
-			this->bits[this->countint-1] = this->bits[this->countint-1] | (1 <<this->countbits%32);
-		}
-		else
-		{
-			this->bits[this->countint-1] = this->bits[this->countint-1] & (~(1 << this->countbits%32));
-		}
-	}
-	//Битовые операции над массивами.
-	//Работают только на массивах одинакового размера.
-	//Обоснование реакции на параметр неверного размера входит в задачу.
-	BitArray& operator&=(const BitArray& b)
-	{
-		if (this->countbits == b.countbits)
-		{
-			for (int i = 0; i < this->countint-1; i++)
-			{
-				this->bits[i] = this->bits[i] & b.bits[i];
-			}
-			if (this->countbits % 32 > 0)
-			{
-				for (int j = 0; j < this->countbits % 32; j++)
-				{
-					this->bits[this->countint - 1] = (this->bits[this->countint - 1] & b.bits[b.countint - 1]) & (1 << (31 - j));
-				}
-			}
-			if (this->countbits % 32 == 0 && this->countbits > 0)
-			{
-				this->bits[this->countint - 1] = this->bits[this->countint - 1] & b.bits[this->countint - 1];
-			}
-		}
-		else
-		{
-			perror("bit arrays of different sizes");
-		}
-		return *this;
-	}
-	BitArray& operator|=(const BitArray& b)
-	{
-		if (this->countbits == b.countbits)
-		{
-			for (int i = 0; i < this->countint-1; i++)
-			{
-				this->bits[i] = this->bits[i] | b.bits[i];
-			}
-			if (this->countbits % 32 > 0)
-			{
-				for (int j = 0; j < this->countbits % 32; j++)
-				{
-					this->bits[this->countint - 1] = (this->bits[this->countint - 1] | b.bits[b.countint - 1]) & (1 << (31 - j));
-				}
-			}
-			if (this->countbits % 32 == 0 && this->countbits > 0)
-			{
-				this->bits[this->countint - 1] = this->bits[this->countint - 1] | b.bits[this->countint - 1];
-			}
-		}
-		else
-		{
-			perror("bit arrays of different sizes");
-		}
-		return *this;
-	}
-	BitArray& operator^=(const BitArray& b)
-	{
-		if (this->countbits == b.countbits)
-		{
-			for (int i = 0; i < this->countint-1; i++)
-			{
-				this->bits[i] = this->bits[i] ^ b.bits[i];
-			}
-			if (this->countbits % 32 > 0)
-			{
-				for (int j = 0; j < this->countbits%32; j++)
-				{
-					this->bits[this->countint - 1] = (this->bits[this->countint - 1] ^ b.bits[b.countint - 1]) & (1 << (31 - j));
-				}
-			}
-			if (this->countbits % 32 == 0 && this->countbits > 0)
-			{
-				this->bits[this->countint - 1] = this->bits[this->countint - 1] ^ b.bits[this->countint - 1];
-			}
-		}
-		else
-		{
-			perror("bit arrays of different sizes");
-		}
-		return *this;
-	}
-	//Битовый сдвиг с заполнением нулями.
-	BitArray& operator<<=(int n)
-	{
-		unsigned int* tablenumbers1 = new unsigned int[32];
-		unsigned int* tablenumbers2 = new unsigned int[32];
-		tablenumbers1[0] = UINT32_MAX;
-		tablenumbers2[31] = UINT32_MAX;
-		for (int i = 1; i < 32; i++)
-		{
-			tablenumbers1[i] = tablenumbers1[i - 1] ^ (1 << (32 - i));
-		}
-		for (int i = 30; i >= 0; i--)
-		{
-			tablenumbers2[i] = tablenumbers2[i + 1] ^ (1 << (30 - i));
-		}
-		BitArray b;
-		b.countbits = this->countbits;
-		b.countint = this->countint;
-		b.sizeint = b.countint;
-		b.bits = new unsigned int[b.sizeint];
-		for (int i = 0; i < this->countint - n / 32; i++)
-		{
-			b.bits[i] = (this->bits[i + n / 32] & tablenumbers1[n % 32]) << (n % 32);
-			b.bits[i] = b.bits[i] | ((this->bits[i + n / 32 + 1] & tablenumbers2[n % 32]) << (n % 32));
-		}
-		for (int j = 0; j < n % 32; j++)
-		{
-			b.bits[this->countint - n / 32-1] = b.bits[this->countint - n / 32-1] & (~(1 << j));
-		}
-		for (int i = this->countint - n / 32; i < this->countint; i++)
-		{
-			b.bits[i] = 0;
-		}
-		*this = b;
-		delete[] tablenumbers1;
-		delete[] tablenumbers2;
-		return *this;
-	}
-	BitArray& operator>>=(int n)
-	{
-		unsigned int* tablenumbers1 = new unsigned int[32];
-		unsigned int* tablenumbers2 = new unsigned int[32];
-		tablenumbers1[0] = UINT32_MAX;
-		tablenumbers2[31] = UINT32_MAX;
-		for (int i = 1; i < 32; i++)
-		{
-			tablenumbers1[i] = tablenumbers1[i - 1] ^ (1 << (32 - i));
-		}
-		for (int i = 30; i >= 0; i--)
-		{
-			tablenumbers2[i] = tablenumbers2[i + 1] ^ (1 << (30 - i));
-		}
-		BitArray b;
-		b.countbits = this->countbits;
-		b.countint = this->countint;
-		b.sizeint = b.countint;
-		b.bits = new unsigned int[b.sizeint];
-		for (int i = this->countint-1; i>=n/32; i--)
-		{
-			b.bits[i] = (this->bits[i-n/32] & tablenumbers1[n % 32]) >> (n % 32);
-			b.bits[i] = b.bits[i] | ((this->bits[i - n / 32] & tablenumbers2[n % 32]) >> (n % 32));
-		}
-		for (int j = 0; j < n % 32; j++)
-		{
-			b.bits[n/32] = b.bits[n/32] & (~(1 >> (31-j)));
-		}
-		for (int i = n/32-1; i>=0; i--)
-		{
-			b.bits[i] = 0;
-		}
-		*this=b;
-		delete[] tablenumbers1;
-		delete[] tablenumbers2;
-		return *this;
-	}
-	BitArray operator<<(int n) const
-	{
-		unsigned int* tablenumbers1 = new unsigned int[32];
-		unsigned int* tablenumbers2 = new unsigned int[32];
-		tablenumbers1[0] = UINT32_MAX;
-		tablenumbers2[31] = UINT32_MAX;
-		for (int i = 1; i < 32; i++)
-		{
-			tablenumbers1[i] = tablenumbers1[i - 1] ^ (1 << (32-i));
-		}
-		for (int i = 30; i >= 0; i--)
-		{
-			tablenumbers2[i] = tablenumbers2[i + 1] ^ (1 << (30 - i));
-		}
-		BitArray b;
-		b.countbits = this->countbits;
-		b.countint = this->countint;
-		b.sizeint = b.countint;
-		b.bits = new unsigned int[b.sizeint];
-		for (int i = 0; i < this->countint-n/32; i++)
-		{
-			b.bits[i] = (this->bits[i + n / 32]&tablenumbers1[n%32])<<(n%32);
-			b.bits[i] = b.bits[i] | ((this->bits[i + n / 32 + 1] & tablenumbers2[n % 32]) << (n % 32));
-		}
-		for (int j =0; j<n%32; j++) 
-		{
-			b.bits[this->countint - n / 32-1] = b.bits[this->countint-n/32-1] & (~(1 << j));
-		}
-		for (int i = this->countint - n / 32; i<this->countint; i++)
-		{
-			b.bits[i] = 0;
-		}
-		delete[] tablenumbers1;
-		delete[] tablenumbers2;
-		return b;
-	}
-	BitArray operator>>(int n) const
-	{
-		unsigned int* tablenumbers1 = new unsigned int[32];
-		unsigned int* tablenumbers2 = new unsigned int[32];
-		tablenumbers1[0] = UINT32_MAX;
-		tablenumbers2[31] = UINT32_MAX;
-		for (int i = 1; i < 32; i++)
-		{
-			tablenumbers1[i] = tablenumbers1[i - 1] ^ (1 << (32 - i));
-		}
-		for (int i = 30; i >= 0; i--)
-		{
-			tablenumbers2[i] = tablenumbers2[i + 1] ^ (1 << (30 - i));
-		}
-		BitArray b;
-		b.countbits = this->countbits;
-		b.countint = this->countint;
-		b.sizeint = b.countint;
-		b.bits = new unsigned int[b.sizeint];
-		for (int i =this->countint-1; i>n/32; i--)
-		{
-			b.bits[i] = (this->bits[i - n / 32] & tablenumbers1[n % 32]) >> (n % 32);
-			b.bits[i] = b.bits[i] | ((this->bits[i - n / 32] & tablenumbers2[n % 32]) >> (n % 32));
-		}
-		for (int j = 0; j < n % 32; j++)
-		{
-			b.bits[n/32] = b.bits[n/32] & (~(1 >> (31-j)));
-		}
-		for (int i = n / 32-1; i>=0; i--)
-		{
-			b.bits[i] = 0;
-		}
-		delete[] tablenumbers1;
-		delete[] tablenumbers2;
-		return b;
-	}
-	//Устанавливает бит с индексом n в значение val.
-	BitArray& set(int n, bool val = true)
-	{
-		if (val)
-		{
-			this->bits[n / 32] = this->bits[n / 32] | (1 << (31-(n % 32)));
-		}
-		else
-		{
-			this->bits[n / 32] = this->bits[n / 32] & (~(1 << (31-(n % 32))));
-		}
-		return *this;
-	}
-	//Заполняет массив истиной.
-	BitArray& set()
-	{
-		for (int i = 0; i < this->countint - 1; i++)
+		for (int i = this->countint; i < num_bits / 32; i++)
 		{
 			this->bits[i] = UINT32_MAX;
 		}
-		if (this->countbits % 32 > 0)
+		for (int i = 0; i < 32; i++)
 		{
-			for (int j = 0; j < this->countbits % 32; j++)
-			{
-				this->bits[this->countint - 1] = this->bits[this->countint - 1] | (1 << (31 - j));
-			}
+			this->bits[num_bits / 32 + 1] = this->bits[num_bits / 32 + 1] | (1 << (31 - i));
 		}
-		if (this->countbits % 32 == 0 && this->countbits > 0)
+		if (num_bits % 32 == 0)
 		{
-			this->bits[this->countint - 1] = UINT32_MAX;
+			this->bits[num_bits / 32] = UINT32_MAX;
 		}
-		return *this;
+
 	}
-	//Устанавливает бит с индексом n в значение false.
-	BitArray& reset(int n)
+	this->countbits = num_bits;
+	this->countint = this->sizeint;
+	return;
+
+}
+/*Clears the array, you can reuse the object*/
+void BitArray::clear() noexcept
+{
+	delete[] this->bits;
+	this->bits = new unsigned int[2];
+	for (int i = 0; i < 2; i++)
 	{
-		this->bits[n / 32] = this->bits[n / 32] & (~(1 << (31-(n % 32))));
-		return *this;
+		this->bits[i] = 0;
 	}
-	//Заполняет массив ложью.
-	BitArray& reset()
+	this->countint = 0;
+	this->countbits = 0;
+	this->sizeint = 2;
+}
+/*Adds a new bit to the end of the array.If necessary, memory is redistributed.*/
+void BitArray::push_back(bool bit) noexcept
+{
+	if (this->countbits % 32 == 0 || countint == 0)
 	{
-		for (int i = 0; i < this->countint-1; i++)
+		if (this->countint + 1 > this->sizeint)
 		{
-			this->bits[i] = 0;
-		}
-		if (this->countbits % 32 > 0)
-		{
-			for (int j = 0; j < this->countbits % 32; j++)
+			unsigned int* temp = new unsigned int[this->sizeint];
+			for (int i = 0; i < countint; i++)
 			{
-				this->bits[this->countint - 1] = this->bits[this->countint - 1] & (~(1 << (31 - j)));
+				temp[i] = this->bits[i];
 			}
+			this->sizeint = this->sizeint + 4;
+			delete[] this->bits;
+			this->bits = new unsigned int[this->sizeint];
+			for (int i = 0; i < countint; i++)
+			{
+				this->bits[i] = temp[i];
+			}
+			for (int i = this->countint; i < this->countint + 4; i++)
+			{
+				this->bits[i] = 0;
+			}
+			delete[] temp;
 		}
-		if (this->countbits % 32 == 0 && this->countbits > 0)
-		{
-			this->bits[this->countint - 1] = 0;
-		}
-		return *this;
+		countint++;
 	}
-	//true, если массив содержит истинный бит.
-	bool any() const
+	this->countbits++;
+	if (bit)
 	{
-		for (int i = 0; i < this->countint-1; i++)
-		{
-			if (this->bits[i] > 0)
-			{
-				return true;
-			}
-		}
-		if (this->countbits % 32 > 0)
-		{
-			for (int j = 0; j < this->countbits % 32; j++)
-			{
-				if (this->bits[this->countint - 1] & (1 << (31 - j)))
-				{
-					return true;
-				}
-			}
-		}
-		if (this->countbits % 32 == 0 && this->countbits > 0)
-		{
-			if (this->bits[this->countint - 1] > 0)
-			{
-				return true;
-			}
-		}
-		return false;
+		this->bits[this->countint - 1] = this->bits[this->countint - 1] | (1 << this->countbits % 32);
 	}
-	//true, если все биты массива ложны.
-	bool none() const
+	else
 	{
-		for (int i = 0; i < this->countint-1; i++)
-		{
-			if (this->bits[i] > 0)
-			{
-				return false;
-			}
-		}
-		if (this->countbits % 32 > 0)
-		{
-			for (int j = 0; j < this->countbits % 32; j++)
-			{
-				if (this->bits[this->countint - 1] & (1 << (31 - j)))
-				{
-					return false;
-				}
-			}
-		}
-		if (this->countbits % 32 == 0 && this->countbits > 0)
-		{
-			if (this->bits[this->countint - 1] > 0)
-			{
-				return false;
-			}
-		}
-		return true;
+		this->bits[this->countint - 1] = this->bits[this->countint - 1] & (~(1 << this->countbits % 32));
 	}
-	//Битовая инверсия
-	BitArray operator~() const
+}
+/*The operator &=, only works on arrays of the same size.Throws an exception if the sizes are different*/
+BitArray& BitArray::operator&=(const BitArray& b)
+{
+	if (this->countbits == b.countbits)
 	{
-		BitArray b;
-		b.countint = this->countint;
-		b.countbits = this->countbits;
-		b.sizeint = this->sizeint;
-		b.bits = new unsigned int[b.sizeint];
-		for (int i = 0; i < this->countint-1; i++)
+		for (int i = 0; i < this->countint; i++)
 		{
-			b.bits[i] = ~this->bits[i];
+			this->bits[i] = this->bits[i] & b.bits[i];
 		}
-		if (this->countbits%32>0)
-		{
-			for (int j = 0; j < this->countbits % 32; j++)
-			{
-				if (this->bits[this->countint - 1] & (1 << (31 - j)))
-				{
-					b.bits[this->countint - 1] = b.bits[this->countint - 1] & (~(1 << (31 - j)));
-				}
-				else
-				{
-					b.bits[this->countint - 1] = b.bits[this->countint - 1] | (1 << (31 - j));
-				}
-			}
-		}
-		if (this->countbits % 32 == 0 && this->countbits > 0)
-		{
-			b.bits[this->countint - 1] = ~this->bits[this->countint - 1];
-		}
-		return b;
 	}
-	//Подсчитывает количество единичных бит.
-	int count() const
+	else
 	{
-		int count = 0;
-		for (int i = 0; i < this->countint-1; i++)
-		{
-			for (int j = 0; j < 32; j++)
-			{
-				if (this->bits[i] & (1 << j))
-				{
-					count++;
-				}
-			}
-		}
-		if (this->countbits % 32 > 0)
-		{
-			for (int j = 0; j < this->countbits%32; j++)
-			{
-				if (this->bits[this->countint - 1] & (1 << (31 - j)))
-				{
-					count++;
-				}
-			}
-		}
-		if (this->countbits % 32 == 0 && this->countbits > 0)
-		{
-			for (int j = 0; j < 32; j++)
-			{
-				if (this->bits[this->countint - 1] & (1 << (31 - j)))
-				{
-					count++;
-				}
-			}
-		}
-		return count;
+		throw "error in operator&=, sizes are diferent";
 	}
-	//Возвращает значение бита по индексу i.
-	bool operator[](int i) const
+	return *this;
+}
+/*The operator |=, only works on arrays of the same size.Throws an exception if the sizes are different*/
+BitArray& BitArray::operator|=(const BitArray& b)
+{
+	if (this->countbits == b.countbits)
 	{
-		if (i > this->countbits-1 || i < 0)
+		for (int i = 0; i < this->countint; i++)
 		{
-			perror("wrong index");
+			this->bits[i] = this->bits[i] | b.bits[i];
 		}
-		else
+	}
+	else
+	{
+		throw "error in operator|=, sizes are diferent";
+
+	}
+	return *this;
+}
+/*The operator ^=, only works on arrays of the same size.Throws an exception if the sizes are different*/
+BitArray& BitArray::operator^=(const BitArray& b)
+{
+	if (this->countbits == b.countbits)
+	{
+		for (int i = 0; i < this->countint; i++)
 		{
-			if (this->bits[i / 32] & (1 << (i % 32)))
-			{
-				return true;
-			}
+			this->bits[i] = this->bits[i] ^ b.bits[i];
 		}
-		return false;
 	}
-	int size() const
+	else
 	{
-		return this->countbits;
+		throw "error in operator^=, sizes are diferent";
 	}
-	bool empty() const
+	return *this;
+}
+/*operator <<=, bit shift to the left with zero padding*/
+BitArray& BitArray::operator<<=(int n) noexcept
+{
+	unsigned int* tablenumbers = new unsigned int[32];
+	tablenumbers[0] = UINT32_MAX;
+	for (int i = 1; i < 32; i++)
 	{
-		if (this->countbits==0)
+		tablenumbers[i] = tablenumbers[i - 1] ^ (1 << (32 - i));
+	}
+	BitArray b;
+	b.countbits = this->countbits;
+	b.countint = this->countint;
+	b.sizeint = b.countint;
+	b.bits = new unsigned int[b.sizeint];
+	for (int i = 0; i < this->countint - n / 32; i++)
+	{
+		b.bits[i] = (this->bits[i + n / 32] & tablenumbers[n % 32]) << (n % 32);
+		b.bits[i] = b.bits[i] | ((this->bits[i + n / 32 + 1] & (~tablenumbers[n % 32])) << (n % 32));
+	}
+	for (int j = 0; j < n % 32; j++)
+	{
+		b.bits[this->countint - n / 32 - 1] = b.bits[this->countint - n / 32 - 1] & (~(1 << j));
+	}
+	for (int i = this->countint - n / 32; i < this->countint; i++)
+	{
+		b.bits[i] = 0;
+	}
+	*this = b;
+	delete[] tablenumbers;
+	~b;
+	return *this;
+}
+/*operator >>=, bit shift to the rigth with zero padding*/
+BitArray& BitArray::operator>>=(int n) noexcept
+{
+	unsigned int* tablenumbers = new unsigned int[32];
+	tablenumbers[0] = UINT32_MAX;
+	for (int i = 1; i < 32; i++)
+	{
+		tablenumbers[i] = tablenumbers[i - 1] ^ (1 << i);
+	}
+	BitArray b;
+	b.countbits = this->countbits;
+	b.countint = this->countint;
+	b.sizeint = b.countint;
+	b.bits = new unsigned int[b.sizeint];
+	for (int i = this->countint - 1; i >= n / 32; i--)
+	{
+		b.bits[i] = (this->bits[i - n / 32] & tablenumbers[n % 32]) >> (n % 32);
+		b.bits[i] = b.bits[i] | ((this->bits[i - n / 32] & (~tablenumbers[n % 32])) >> (n % 32));
+	}
+	for (int j = 0; j < n % 32; j++)
+	{
+		b.bits[n / 32] = b.bits[n / 32] & (~(1 >> (31 - j)));
+	}
+	for (int i = n / 32 - 1; i >= 0; i--)
+	{
+		b.bits[i] = 0;
+	}
+	*this = b;
+	delete[] tablenumbers;
+	~b;
+	return *this;
+}
+/*operator <<, bit shift to the left with zero padding*/
+BitArray BitArray::operator<<(int n) const noexcept
+{
+	BitArray b(*this);
+	b <<= n;
+	return b;
+}
+/*operator >>, bit shift to the rigth with zero padding*/
+BitArray BitArray::operator>>(int n) const noexcept
+{
+	BitArray b(*this);
+	b >>= n;
+	return b;
+}
+/*sets the bit with index i to val, throws an exception 
+if i negative or is greater or than the number of bits in the bit array -1*/
+BitArray& BitArray::set(int n, bool val)
+{
+	if (n < 0 || n >= this->countbits)
+	{
+		throw "error in set(int, bool): n is wrong";
+	}
+	if (val)
+	{
+		this->bits[n / 32] = this->bits[n / 32] | (1 << (31 - (n % 32)));
+	}
+	else
+	{
+		this->bits[n / 32] = this->bits[n / 32] & (~(1 << (31 - (n % 32))));
+	}
+	return *this;
+}
+/*Makes all bits true*/
+BitArray& BitArray::set() noexcept
+{
+	for (int i = 0; i < this->countint; i++)
+	{
+		this->bits[i] = UINT32_MAX;
+	}
+	return *this;
+}
+/*sets the bit with index i to false, throws an exception
+if i negative or is greater than the number of bits in the bit array -1 */
+BitArray& BitArray::reset(int n)
+{
+	if (n < 0 || n >= this->countbits)
+	{
+		throw "error in reset(int): n is wrong";
+	}
+	this->bits[n / 32] = this->bits[n / 32] & (~(1 << (31 - (n % 32))));
+	return *this;
+}
+/*Makes all bits false*/
+BitArray& BitArray::reset() noexcept
+{
+	for (int i = 0; i < this->countint; i++)
+	{
+		this->bits[i] = 0;
+	}
+	return *this;
+}
+/*returns true if at least one bit is true, otherwise false, throws an exception if bit array is empty*/
+bool BitArray::any() const 
+{
+	if (this->countbits == 0)
+	{
+		throw "error in any: bit array is empty";
+	}
+	for (int i = 0; i < this->countint; i++)
+	{
+		if (this->bits[i] > 0)
 		{
 			return true;
 		}
-		return false;
 	}
-	//Возвращает строковое представление массива.
-	std::string to_string() const
+	return false;
+}
+/*returns true if all bits are false, otherwise false, throws an exception if bit array is empty*/
+bool BitArray::none() const
+{
+	if (this->countbits == 0)
 	{
-		std::string str;
-		for (int i = 0; i < this->countint-1; i++)
-		{
-			for (int j = 31; j>=0; j--)
-			{
-				if (this->bits[i] & (1 << j))
-				{
-					str.push_back('1');
-				}
-				else
-				{
-					str.push_back('0');
-				}
-			}
-		}
-		if (this->countbits % 32>0)
-		{
-			for (int j = 0; j < this->countbits%32; j++)
-			{
-				if (this->bits[this->countint - 1] & (1 << (31 - j)))
-				{
-					str.push_back('1');
-				}
-				else
-				{
-					str.push_back('0');
-				}
-			}
-		}
-		if (this->countbits%32==0 && this->countbits>0)
-		{
-			for (int j = 0; j < 32; j++)
-			{
-				if (this->bits[this->countint - 1] & (1 << (31 - j)))
-				{
-					str.push_back('1');
-				}
-				else
-				{
-					str.push_back('0');
-				}
-			}
-		}
-		return str;
+		throw "error in none: bit array is empty";
 	}
-};
-bool operator==(const BitArray& a, const BitArray& b)
+	for (int i = 0; i < this->countint; i++)
+	{
+		if (this->bits[i] > 0)
+		{
+			return false;
+		}
+	}
+	return true;
+}
+/*Bit inversion*/
+BitArray BitArray::operator~() const noexcept
+{
+	BitArray b;
+	b.countint = this->countint;
+	b.countbits = this->countbits;
+	b.sizeint = this->sizeint;
+	b.bits = new unsigned int[b.sizeint];
+	for (int i = 0; i < this->countint; i++)
+	{
+		b.bits[i] = ~this->bits[i];
+	}
+	return b;
+}
+/*Returns the number of true bits in the bit array*/
+int BitArray::count() const noexcept
+{
+	int count = 0;
+	for (int i = 0; i < this->countint - 1; i++)
+	{
+		for (int j = 0; j < 32; j++)
+		{
+			if (this->bits[i] & (1 << j))
+			{
+				count++;
+			}
+		}
+	}
+	if (this->countbits % 32 > 0)
+	{
+		for (int j = 0; j < this->countbits % 32; j++)
+		{
+			if (this->bits[this->countint - 1] & (1 << (31 - j)))
+			{
+				count++;
+			}
+		}
+	}
+	if (this->countbits % 32 == 0 && this->countbits > 0)
+	{
+		for (int j = 0; j < 32; j++)
+		{
+			if (this->bits[this->countint - 1] & (1 << (31 - j)))
+			{
+				count++;
+			}
+		}
+	}
+	return count;
+}
+/*Returns the value of the bit at the index i.Throws an exception if the index i is specified incorrectly :
+negative or more than the number of bits in the bit array*/
+bool BitArray::operator[](int i) const
+{
+	if (i > this->countbits - 1 || i < 0)
+	{
+		throw "error in operator[]: argument i is wrong";
+	}
+	else
+	{
+		if (this->bits[i / 32] & (1 << (i % 32)))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+/*Returns the number of bits in the bit array*/
+int BitArray::size() const noexcept
+{
+	return this->countbits;
+}
+/*Returns true if the bit array is empty, otherwise false*/
+bool BitArray::empty() const noexcept
+{
+	if (this->countbits == 0)
+	{
+		return true;
+	}
+	return false;
+}
+/*Returns the string representation of the array.The true bit corresponds to the character '1',
+and the false bit corresponds to the character '0', the order from the highest to the lowest*/
+std::string BitArray::to_string() const noexcept
+{
+	std::string str;
+	for (int i = 0; i < this->countint - 1; i++)
+	{
+		for (int j = 31; j >= 0; j--)
+		{
+			if (this->bits[i] & (1 << j))
+			{
+				str.push_back('1');
+			}
+			else
+			{
+				str.push_back('0');
+			}
+		}
+	}
+	if (this->countbits % 32 > 0)
+	{
+		for (int j = 0; j < this->countbits % 32; j++)
+		{
+			if (this->bits[this->countint - 1] & (1 << (31 - j)))
+			{
+				str.push_back('1');
+			}
+			else
+			{
+				str.push_back('0');
+			}
+		}
+	}
+	if (this->countbits % 32 == 0 && this->countbits > 0)
+	{
+		for (int j = 0; j < 32; j++)
+		{
+			if (this->bits[this->countint - 1] & (1 << (31 - j)))
+			{
+				str.push_back('1');
+			}
+			else
+			{
+				str.push_back('0');
+			}
+		}
+	}
+	return str;
+}
+/*checks two bit arrays for equality, they are equal when the number of bits is the same,
+and each bit of the first bit array is equal to each bit of the second, respectively*/
+bool operator==(const BitArray& a, const BitArray& b) noexcept
 {
 	if (a.size() == b.size())
 	{
@@ -724,7 +581,9 @@ bool operator==(const BitArray& a, const BitArray& b)
 	}
 	return false;
 }
-bool operator!=(const BitArray& a, const BitArray& b)
+/*Checks two bit arrays for inequality, they are not equal when the number of bits is different
+or at least one bit of the first array is not equal to the bit of the second*/
+bool operator!=(const BitArray& a, const BitArray& b) noexcept
 {
 	if (a.size() == b.size())
 	{
@@ -739,8 +598,9 @@ bool operator!=(const BitArray& a, const BitArray& b)
 	}
 	return true;
 }
-
-BitArray operator&(const BitArray& b1, const BitArray& b2)
+/*The operator &, makes a bitwise conjunction, only works on arrays of the same size.
+Throws an exception if the sizes are different*/
+BitArray operator&(const BitArray& b1, const BitArray& b2) 
 {
 	BitArray b;
 	if (b1.size() == b2.size())
@@ -750,10 +610,12 @@ BitArray operator&(const BitArray& b1, const BitArray& b2)
 	}
 	else
 	{
-		perror("bit arrays of different sizes");
+		throw "error in operator&: sizes of bitarrays are diferent";
 	}
 	return b;
 }
+/*The operator |, makes a bitwise disjunction, only works on arrays of the same size.
+Throws an exception if the sizes are different*/
 BitArray operator|(const BitArray& b1, const BitArray& b2)
 {
 	BitArray b;
@@ -764,10 +626,12 @@ BitArray operator|(const BitArray& b1, const BitArray& b2)
 	}
 	else
 	{
-		perror("bit arrays of different sizes");
+		throw "error in operator|: sizes of bitarrays are diferent";
 	}
 	return b;
 }
+/*The operator ^,  makes a bitwise inversion, only works on arrays of the same size.
+Throws an exception if the sizes are different*/
 BitArray operator^(const BitArray& b1, const BitArray& b2)
 {
 	BitArray b;
@@ -778,91 +642,7 @@ BitArray operator^(const BitArray& b1, const BitArray& b2)
 	}
 	else
 	{
-		perror("bit arrays of different sizes");;
+		throw "error in operator^: sizes of bitarrays are diferent";
 	}
 	return b;
-}
-
-int main()
-{
-	using namespace std;
-	string str;
-	string str2;
-	BitArray b(32, UINT32_MAX);
-	bool a = b.any();
-	cout << a << '\n';
-	b = ~b;
-	str = b.to_string();
-	cout << str << '\n';
-	bool n = b.none();
-	cout << n << '\n';
-	BitArray b2(b);
-	b ^= b2;
-	bool e = b.empty();
-	cout << e << '\n';
-	b.set();
-	str = b.to_string();
-	cout << str << '\n';
-	int c = b.count();
-	cout << c << '\n';
-	b.reset();
-	str = b.to_string();
-	cout << str << '\n';
-	b.resize(64, true);
-	str = b.to_string();
-	cout << str << '\n';
-	b>>=1;
-	str = b.to_string();
-	cout << str << '\n';
-	b.push_back(false);
-	str = b.to_string();
-	cout << str << '\n';
-	b.swap(b2);
-	str = b.to_string();
-	str2 = b2.to_string();
-	cout << "swap"<<"\n";
-	cout << str << '\n';
-	cout << str2 << '\n';
-	b2.set(1, true);
-	str2 = b2.to_string();
-	cout << str2 << '\n';
-	b2.reset(60);
-	str2 = b2.to_string();
-	cout << str2 << '\n';;
-	cout << "new op\n";
-	int s = b2.size();
-	b.resize(s, true);
-	BitArray b3;
-	b3 = b & b2;
-	string str3;
-	str3 = b3.to_string();
-	cout << str3 << "\n";
-	BitArray b4(b3);
-	b4 = ~b4;
-	string str4 = b4.to_string();
-	cout << str4 << "\n";
-	b |= b4;
-	str = b.to_string();
-	cout << str << "\n";
-	b = b ^ b2;
-	str = b.to_string();
-	cout << str << "\n";
-	b = b & b3;
-	str = b.to_string();
-	cout << str << "\n";
-	b = b3 | b4;
-	str = b.to_string();
-	cout << str << "\n";
-	bool eq = b == b;
-	cout << eq << "\n";
-	eq = b == b2;
-	cout << eq << "\n";
-	bool el = b[3];
-	cout << el << "\n";
-	str = b.to_string();
-	cout << str << "\n";
-	b.clear();
-	b3 >>= 4;
-	b2 = b3 << 3;
-	return 0;
 }
